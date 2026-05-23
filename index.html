@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To do list</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="list.css">
+</head>
+<body>
+
+<div class="main-container">
+    <div class="app-wrapper">
+        <div class="pdf-card">
+            <div class="pdf-header">
+                <div class="my-work"><i class="bi bi-flower2"></i> MY WORK <i class="bi bi-flower2"></i></div>
+                <div class="main-title">
+                    <span><i class="bi bi-clipboard-check"></i></span> to do list
+                </div>
+                <div class="sub-line">· dream · plan · do ·</div>
+            </div>
+
+            <div class="todo-container">
+                <div class="add-task-form">
+                    <input type="text" id="newTaskInput" placeholder="new task ... e.g: check emails" autocomplete="off">
+                    <button id="addTaskBtn"><i class="bi bi-plus-lg"></i> Add</button>
+                </div>
+                <div class="tasks-list" id="tasksList"></div>
+                <div class="todo-footer">
+                    <div class="stats" id="statsCounter"><i class="bi bi-bar-chart-steps"></i> 0 tasks · 0 completed</div>
+                    <button class="clear-btn" id="clearCompletedBtn"><i class="bi bi-stars"></i> Clear completed</button>
+                </div>
+            </div>
+
+            <div class="objectives-section">
+                <div class="objectives-header">
+                    <span><i class="bi bi-heart-fill"></i></span> Remember <span><i class="bi bi-star-fill"></i></span>
+                </div>
+                <div class="objectives-sub">· custom reminders with timer ·</div>
+                <div class="objectives-list" id="objectivesList"></div>
+                <div class="add-objective-form">
+                    <input type="text" id="newObjectiveInput" placeholder="new reminder ... e.g: call mom" autocomplete="off">
+                    <button id="addObjectiveBtn"><i class="bi bi-plus-lg"></i> Add reminder</button>
+                </div>
+            </div>
+
+            <div class="app-footer">
+                <p><i class="bi bi-flower1"></i> Made with <i class="bi bi-suit-heart-fill"></i> to never forget what matters <i class="bi bi-flower1"></i></p>
+                <p class="footer-version"><i class="bi bi-clock-history"></i> v5.0 · Smart Reminders + Timer</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="global-footer">
+    <div class="copyright-text">
+        <i class="bi bi-c-circle"></i> 2025 Don't Forget App · Made with <i class="bi bi-suit-heart-fill"></i> to keep you organized · 
+        <a href="#" aria-label="Privacy">Privacy</a> · 
+        <a href="#" aria-label="Terms">Terms</a>
+    </div>
+</footer>
+
+<!-- Modals -->
+<div id="editModal" class="modal-edit">
+    <div class="modal-content">
+        <h3><i class="bi bi-pencil-square"></i> Edit task</h3>
+        <input type="text" id="editInput" placeholder="new text...">
+        <div class="modal-buttons">
+            <button class="save-edit" id="saveEditBtn"><i class="bi bi-check-lg"></i> Save</button>
+            <button class="cancel-edit" id="cancelEditBtn"><i class="bi bi-x-lg"></i> Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="editObjectiveModal" class="modal-edit">
+    <div class="modal-content">
+        <h3><i class="bi bi-pencil-square"></i> Edit reminder</h3>
+        <input type="text" id="editObjectiveInput" placeholder="new text...">
+        <div class="modal-buttons">
+            <button class="save-edit" id="saveObjectiveEditBtn"><i class="bi bi-check-lg"></i> Save</button>
+            <button class="cancel-edit" id="cancelObjectiveEditBtn"><i class="bi bi-x-lg"></i> Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="imageModal" class="modal-edit">
+    <div class="modal-content image-modal-content">
+        <h3><i class="bi bi-image"></i> Add Image</h3>
+        <div class="upload-area">
+            <label for="imageFileInput" class="upload-label"><i class="bi bi-upload"></i> Upload from device</label>
+            <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+            <div class="upload-hint">or</div>
+        </div>
+        <input type="text" id="imageUrlInput" placeholder="Image URL (https://example.com/image.jpg)">
+        <div class="image-preview" id="imagePreview"></div>
+        <div class="modal-buttons">
+            <button class="save-edit" id="saveImageBtn"><i class="bi bi-check-lg"></i> Add Image</button>
+            <button class="cancel-edit" id="removeImageBtn"><i class="bi bi-trash3"></i> Remove Image</button>
+            <button class="cancel-edit" id="cancelImageBtn"><i class="bi bi-x-lg"></i> Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="centerAlert" class="center-alert">
+    <div class="center-alert-content">
+        <div class="alert-icon"><i class="bi bi-bell-fill"></i></div>
+        <div class="alert-title">REMEMBER!</div>
+        <div class="alert-image-container" id="alertImageContainer"></div>
+        <div class="alert-message" id="alertMessage"></div>
+        <button class="alert-close" id="alertCloseBtn"><i class="bi bi-check-circle"></i> Got it</button>
+    </div>
+</div>
+
+<script src="list.js"></script>
+</body>
+</html>
