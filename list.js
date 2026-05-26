@@ -31,11 +31,342 @@ const saveImageBtn = document.getElementById('saveImageBtn');
 const removeImageBtn = document.getElementById('removeImageBtn');
 const cancelImageBtn = document.getElementById('cancelImageBtn');
 
+const soundModal = document.getElementById('soundModal');
+const presetSoundsContainer = document.getElementById('presetSounds');
+const soundFileInput = document.getElementById('soundFileInput');
+const saveSoundBtn = document.getElementById('saveSoundBtn');
+const cancelSoundBtn = document.getElementById('cancelSoundBtn');
+const currentSoundNameSpan = document.getElementById('currentSoundName');
+
 const centerAlert = document.getElementById('centerAlert');
 const alertMessageSpan = document.getElementById('alertMessage');
 const alertImageContainer = document.getElementById('alertImageContainer');
 const alertCloseBtn = document.getElementById('alertCloseBtn');
 
+let currentAudio = null;
+let isAlertActive = false;
+let pendingAlert = null;
+let isAudioPlaying = false;
+let audioEnabled = false;
+
+// Configuración de sonido actual
+let currentSoundConfig = {
+    type: 'preset',
+    value: 'A_Toda_Velocidad',
+    name: 'A Toda Velocidad',
+    url: 'A_Toda_Velocidad.mp3'
+};
+
+// Sonidos predefinidos
+const presetSoundsMap = {
+    A_Toda_Velocidad: {
+        url: 'A_Toda_Velocidad.mp3',
+        name: 'A Toda Velocidad'
+    },
+    El_Templo_Del_adios: {
+        url: 'El_Templo_Del_adios.mp3',
+        name: 'El Templo del Adiós'
+    }
+};
+
+// Variable para almacenar URL temporal del audio subido
+let uploadedAudioUrl = null;
+let uploadedAudioName = null;
+
+// Renderizar la lista de sonidos predefinidos
+function renderSoundList() {
+    if (!presetSoundsContainer) return;
+    
+    let html = '';
+    
+    // Sonidos predefinidos
+    for (const [key, sound] of Object.entries(presetSoundsMap)) {
+        const isActive = (currentSoundConfig.type === 'preset' && currentSoundConfig.value === key);
+        html += `
+            <button class="preset-sound-btn ${isActive ? 'active' : ''}" data-sound="${key}">
+                🎵 ${sound.name}
+            </button>
+        `;
+    }
+    
+    // Mostrar audio subido temporalmente si existe
+    if (uploadedAudioUrl) {
+        const isActive = (currentSoundConfig.type === 'uploaded');
+        html += `<div style="width:100%; margin: 8px 0 4px; font-size:0.7rem; color:#b28ad0;"><i class="bi bi-music-note"></i> Uploaded</div>`;
+        html += `
+            <button class="preset-sound-btn ${isActive ? 'active' : ''}" data-sound="uploaded">
+                📁 ${escapeHtml(uploadedAudioName || 'Custom Audio')}
+            </button>
+        `;
+    }
+    
+    presetSoundsContainer.innerHTML = html;
+    
+    // Re-asignar eventos a los botones de sonido
+    document.querySelectorAll('.preset-sound-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const soundKey = btn.dataset.sound;
+            
+            if (soundKey === 'uploaded' && uploadedAudioUrl) {
+                currentSoundConfig = {
+                    type: 'uploaded',
+                    value: 'uploaded',
+                    name: uploadedAudioName || 'Custom Audio',
+                    url: uploadedAudioUrl
+                };
+                updateCurrentSoundDisplay();
+                testSound(uploadedAudioUrl, uploadedAudioName || 'Custom Audio');
+            } else if (presetSoundsMap[soundKey]) {
+                const sound = presetSoundsMap[soundKey];
+                currentSoundConfig = {
+                    type: 'preset',
+                    value: soundKey,
+                    name: sound.name,
+                    url: sound.url
+                };
+                updateCurrentSoundDisplay();
+                testSound(sound.url, sound.name);
+            }
+            
+            // Actualizar clase activa
+            document.querySelectorAll('.preset-sound-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+}
+
+// Función para obtener la URL del sonido actual
+function getCurrentSoundUrl() {
+    return currentSoundConfig.url || presetSoundsMap.A_Toda_Velocidad.url;
+}
+
+// Guardar configuración de sonido en localStorage (solo la selección, no el audio)
+function saveSoundConfig() {
+    const configToSave = {
+        type: currentSoundConfig.type,
+        value: currentSoundConfig.value,
+        name: currentSoundConfig.name
+    };
+    // No guardamos la URL del audio subido porque es temporal
+    localStorage.setItem('alertSoundConfig', JSON.stringify(configToSave));
+}
+
+// Cargar configuración de sonido desde localStorage
+function loadSoundConfig() {
+    const saved = localStorage.getItem('alertSoundConfig');
+    if (saved) {
+        try {
+            const config = JSON.parse(saved);
+            if (config.type === 'preset' && presetSoundsMap[config.value]) {
+                currentSoundConfig = {
+                    type: 'preset',
+                    value: config.value,
+                    name: config.name,
+                    url: presetSoundsMap[config.value].url
+                };
+            } else if (config.type === 'uploaded' && uploadedAudioUrl) {
+                currentSoundConfig = {
+                    type: 'uploaded',
+                    value: 'uploaded',
+                    name: config.name || 'Custom Audio',
+                    url: uploadedAudioUrl
+                };
+            }
+            updateCurrentSoundDisplay();
+        } catch(e) {
+            console.log('Error loading sound config');
+        }
+    }
+}
+
+function updateCurrentSoundDisplay() {
+    if (currentSoundNameSpan) {
+        currentSoundNameSpan.textContent = currentSoundConfig.name || 'A Toda Velocidad';
+    }
+}
+
+// Función para reproducir audio completo (para la alerta)
+function playFullAudio() {
+    stopAlertSound();
+    isAudioPlaying = true;
+    
+    const soundUrl = getCurrentSoundUrl();
+    
+    if (!soundUrl) {
+        console.error('No sound URL available');
+        return;
+    }
+    
+    try {
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
+        
+        currentAudio = new Audio(soundUrl);
+        currentAudio.volume = 0.7;
+        currentAudio.loop = true;
+        
+        currentAudio.addEventListener('error', (e) => {
+            console.error('Error loading audio:', soundUrl, e);
+            stopAlertSound();
+        });
+        
+        const playPromise = currentAudio.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.error('Audio playback failed:', error);
+                stopAlertSound();
+            });
+        }
+        
+    } catch (e) {
+        console.error('Audio creation error:', e);
+        stopAlertSound();
+    }
+}
+
+function stopAlertSound() {
+    isAudioPlaying = false;
+    
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+    }
+}
+
+// Probar un sonido (reproduce una breve muestra)
+function testSound(url, name) {
+    if (!url) {
+        console.log('No sound URL provided');
+        return;
+    }
+    
+    const testAudio = new Audio(url);
+    testAudio.volume = 0.5;
+    
+    const playPromise = testAudio.play();
+    
+    if (playPromise !== undefined) {
+        playPromise.catch(e => console.log('Test failed:', e));
+    }
+    
+    // Detener después de 3 segundos
+    setTimeout(() => {
+        testAudio.pause();
+        testAudio.currentTime = 0;
+    }, 3000);
+}
+
+// Función para subir audio temporalmente
+function uploadTemporaryAudio(file) {
+    return new Promise((resolve, reject) => {
+        // Limpiar URL anterior si existe
+        if (uploadedAudioUrl) {
+            URL.revokeObjectURL(uploadedAudioUrl);
+        }
+        
+        const url = URL.createObjectURL(file);
+        uploadedAudioUrl = url;
+        uploadedAudioName = file.name.replace(/\.[^/.]+$/, '');
+        
+        // Seleccionar automáticamente el audio subido
+        currentSoundConfig = {
+            type: 'uploaded',
+            value: 'uploaded',
+            name: uploadedAudioName,
+            url: uploadedAudioUrl
+        };
+        updateCurrentSoundDisplay();
+        saveSoundConfig();
+        renderSoundList();
+        
+        // Probar el sonido
+        testSound(uploadedAudioUrl, uploadedAudioName);
+        
+        resolve({ url, name: uploadedAudioName });
+    });
+}
+
+// Funciones del modal de sonido
+function openSoundModal() {
+    renderSoundList();
+    soundModal.classList.add('active');
+}
+
+function closeSoundModal() {
+    soundModal.classList.remove('active');
+}
+
+function applySound() {
+    saveSoundConfig();
+    closeSoundModal();
+    if (currentAudio) {
+        const wasPlaying = isAudioPlaying;
+        stopAlertSound();
+        if (wasPlaying && centerAlert.classList.contains('show')) {
+            playFullAudio();
+        }
+    }
+}
+
+// ============ FUNCIONES DE ALERTA ============
+function showCenterAlert(message, imageUrl = null) {
+    if (isAlertActive) {
+        pendingAlert = { message, imageUrl };
+        return;
+    }
+    
+    isAlertActive = true;
+    
+    alertMessageSpan.textContent = message;
+    if (imageUrl && imageUrl.trim()) {
+        alertImageContainer.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="reminder image" onerror="this.style.display='none'">`;
+    } else {
+        alertImageContainer.innerHTML = '';
+    }
+    centerAlert.classList.add('show');
+    playFullAudio();
+}
+
+function closeCenterAlert() {
+    centerAlert.classList.remove('show');
+    alertImageContainer.innerHTML = '';
+    stopAlertSound();
+    
+    isAlertActive = false;
+    
+    if (pendingAlert) {
+        setTimeout(() => {
+            showCenterAlert(pendingAlert.message, pendingAlert.imageUrl);
+            pendingAlert = null;
+        }, 300);
+    }
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && centerAlert.classList.contains('show')) {
+        closeCenterAlert();
+    }
+});
+
+function enableAudioOnUserInteraction() {
+    if (audioEnabled) return;
+    
+    const testAudio = new Audio(getCurrentSoundUrl());
+    testAudio.play().then(() => {
+        testAudio.pause();
+        testAudio.currentTime = 0;
+        audioEnabled = true;
+    }).catch(e => console.log('Waiting for user interaction...'));
+    
+    document.removeEventListener('click', enableAudioOnUserInteraction);
+    document.removeEventListener('keydown', enableAudioOnUserInteraction);
+}
+
+// ============ FUNCIONES UTILITARIAS ============
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, function(m) {
@@ -46,32 +377,13 @@ function escapeHtml(str) {
     });
 }
 
-function showCenterAlert(message, imageUrl = null) {
-    alertMessageSpan.textContent = message;
-    if (imageUrl && imageUrl.trim()) {
-        alertImageContainer.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="reminder image" onerror="this.style.display='none'">`;
-    } else {
-        alertImageContainer.innerHTML = '';
-    }
-    centerAlert.classList.add('show');
-}
-
-function closeCenterAlert() {
-    centerAlert.classList.remove('show');
-    alertImageContainer.innerHTML = '';
-}
-
-alertCloseBtn.addEventListener('click', closeCenterAlert);
-centerAlert.addEventListener('click', (e) => { 
-    if (e.target === centerAlert) closeCenterAlert(); 
-});
-
 function showReminderMessage(objective) {
     const messages = ["Don't forget:", "Remember:", "Important!", "Don't miss:", "You have pending:", "Don't forget about:"];
     const randomPrefix = messages[Math.floor(Math.random() * messages.length)];
     showCenterAlert(`${randomPrefix} "${objective.text}"`, objective.imageUrl);
 }
 
+// ============ TIMER FUNCTIONS ============
 function stopObjectiveTimer(objectiveId) {
     if (objectiveIntervals[objectiveId]) {
         clearInterval(objectiveIntervals[objectiveId]);
@@ -93,6 +405,7 @@ function startObjectiveTimer(objective) {
     }, intervalMs);
 }
 
+// ============ LOCAL STORAGE ============
 function saveToLocalStorage() {
     localStorage.setItem('todoListPastel', JSON.stringify(tasks));
     localStorage.setItem('dontForgetList', JSON.stringify(objectives));
@@ -132,6 +445,7 @@ function restartAllTimers() {
     });
 }
 
+// ============ TASK FUNCTIONS ============
 function updateStats() {
     const total = tasks.length;
     const completedCount = tasks.filter(t => t.completed).length;
@@ -223,6 +537,7 @@ function clearCompletedTasks() {
     renderTasks();
 }
 
+// ============ IMAGE FUNCTIONS ============
 function convertFileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -299,6 +614,7 @@ function closeImageModal() {
     imagePreview.innerHTML = '<span style="color:#b59ad0; padding:20px;"><i class="bi bi-image"></i> Image preview</span>';
 }
 
+// ============ OBJECTIVE FUNCTIONS ============
 function renderObjectives() {
     if (!objectivesListEl) return;
     if (objectives.length === 0) {
@@ -435,6 +751,7 @@ function closeObjectiveModal() {
     editObjectiveInput.value = "";
 }
 
+// ============ EVENT HANDLERS ============
 function handleTaskListClick(e) {
     const target = e.target;
     if (target.classList.contains('delete-btn') || target.closest('.delete-btn')) {
@@ -484,10 +801,13 @@ function handleObjectivesClick(e) {
 function onEnterKey(e) { if (e.key === 'Enter') addNewTask(); }
 function onObjectiveEnterKey(e) { if (e.key === 'Enter') addNewObjective(); }
 
+// ============ FUNCIÓN PRINCIPAL INIT ============
 function init() {
+    loadSoundConfig();
     loadFromLocalStorage();
     renderTasks();
     renderObjectives();
+    renderSoundList();
 
     addTaskBtn.addEventListener('click', addNewTask);
     newTaskInput.addEventListener('keypress', onEnterKey);
@@ -518,9 +838,55 @@ function init() {
         }
     });
 
+    // Evento para subir archivo de audio temporalmente
+    soundFileInput?.addEventListener('change', async (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            console.log('Subiendo archivo temporal:', file.name);
+            await uploadTemporaryAudio(file);
+            soundFileInput.value = '';
+            
+            // Mostrar mensaje de éxito
+            const successMsg = document.createElement('div');
+            successMsg.textContent = '✓ Audio uploaded! Select it from the list above';
+            successMsg.style.cssText = 'color:#6a4e7e; font-size:0.7rem; margin-top:5px; background:#f0e8ff; padding:4px 10px; border-radius:20px; text-align:center;';
+            const uploadArea = document.querySelector('.upload-sound-area');
+            const oldMsg = uploadArea.querySelector('.upload-success-msg');
+            if (oldMsg) oldMsg.remove();
+            successMsg.className = 'upload-success-msg';
+            uploadArea.appendChild(successMsg);
+            setTimeout(() => successMsg.remove(), 3000);
+        }
+    });
+
+    saveSoundBtn?.addEventListener('click', applySound);
+    cancelSoundBtn?.addEventListener('click', closeSoundModal);
+    soundModal?.addEventListener('click', (e) => { if (e.target === soundModal) closeSoundModal(); });
+
+    alertCloseBtn.addEventListener('click', closeCenterAlert);
+    centerAlert.addEventListener('click', (e) => { 
+        if (e.target === centerAlert) closeCenterAlert(); 
+    });
+
+    if (!audioEnabled) {
+        document.addEventListener('click', enableAudioOnUserInteraction);
+        document.addEventListener('keydown', enableAudioOnUserInteraction);
+    }
+
     window.addEventListener('beforeunload', () => {
         Object.values(objectiveIntervals).forEach(interval => clearInterval(interval));
+        stopAlertSound();
+        // Limpiar URL temporal del audio
+        if (uploadedAudioUrl) {
+            URL.revokeObjectURL(uploadedAudioUrl);
+        }
     });
+}
+
+// Botón para abrir configuración de sonido
+const openSoundBtn = document.getElementById('openSoundSettingsBtn');
+if (openSoundBtn) {
+    openSoundBtn.addEventListener('click', openSoundModal);
 }
 
 init();

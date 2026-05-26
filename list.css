@@ -30,6 +30,7 @@ body {
     box-shadow: 0 30px 50px -20px rgba(156, 118, 186, 0.35), 0 8px 20px rgba(100, 150, 200, 0.1);
     overflow: hidden;
     border: 1px solid rgba(200, 180, 240, 0.5);
+    position: relative;
 }
 
 .pdf-header {
@@ -37,6 +38,7 @@ body {
     padding: 1.5rem 1.8rem 1.2rem;
     background: linear-gradient(120deg, #f0f9ff, #f5eeff, #fff0f7);
     border-bottom: 2px solid #e0d0ff;
+    position: relative;
 }
 
 .my-work {
@@ -87,6 +89,31 @@ body {
     color: #9ab3d4;
     letter-spacing: 3px;
     margin-top: 2px;
+}
+
+/* Botón de configuración de sonido */
+.sound-settings-btn {
+    background: transparent;
+    border: none;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: #b29ad6;
+    transition: 0.15s;
+    padding: 6px 12px;
+    border-radius: 40px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-weight: 500;
+}
+
+.sound-settings-btn:hover {
+    background: #ede4ff;
+    color: #8a6eb3;
+    transform: scale(1.02);
 }
 
 .todo-container {
@@ -803,6 +830,88 @@ body {
     border-color: #cbb5e8;
 }
 
+/* Sound Modal Styles */
+.sound-modal-content {
+    max-width: 450px;
+}
+
+.sound-section {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.sound-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #b28ad0;
+    margin-bottom: 0.5rem;
+}
+
+.preset-sounds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.preset-sound-btn {
+    background: linear-gradient(95deg, #f0e8ff, #f8f2ff);
+    border: 1px solid #e0d0f0;
+    padding: 6px 14px;
+    border-radius: 40px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #8a6eb3;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.preset-sound-btn:hover {
+    background: linear-gradient(95deg, #e0d0f5, #ece0ff);
+    transform: scale(0.98);
+}
+
+.preset-sound-btn.active {
+    background: linear-gradient(95deg, #c9b0df, #dac2ec);
+    color: white;
+    border-color: #b89ad0;
+}
+
+.upload-sound-area {
+    margin-bottom: 8px;
+}
+
+.upload-sound-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(95deg, #e8dcf5, #f0e6ff);
+    padding: 8px 18px;
+    border-radius: 40px;
+    font-weight: 600;
+    color: #8a6eb3;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: 0.2s;
+}
+
+.upload-sound-label:hover {
+    background: linear-gradient(95deg, #dcc8f0, #e8daf5);
+}
+
+.current-sound-info {
+    background: #f8f2ff;
+    padding: 10px 15px;
+    border-radius: 20px;
+    margin-top: 10px;
+}
+
+.current-sound-display {
+    font-size: 0.85rem;
+    color: #6a558a;
+    font-weight: 500;
+}
+
 .center-alert {
     position: fixed;
     top: 0;
@@ -966,5 +1075,21 @@ body {
     .copyright-text {
         font-size: 0.65rem;
         gap: 4px;
+    }
+    
+    .sound-settings-btn {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+        top: 10px;
+        right: 10px;
+    }
+    
+    .preset-sounds {
+        gap: 5px;
+    }
+    
+    .preset-sound-btn {
+        padding: 4px 10px;
+        font-size: 0.7rem;
     }
 }
